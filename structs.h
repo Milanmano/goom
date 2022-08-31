@@ -2,8 +2,12 @@
 #define GOOM_STRUCTS_H
 
 typedef struct {
-    int x, y;
+    double x, y;
     int rotation;
 } player;
+
+typedef struct {
+    int w, s, a, d;
+} key;
 
 #endif //GOOM_STRUCTS_H
