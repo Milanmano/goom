@@ -1,9 +1,9 @@
-#ifndef BINARY_SPACE_PARTITIONING_STRUCTS_H
-#define BINARY_SPACE_PARTITIONING_STRUCTS_H
+#ifndef GOOM_STRUCTS_H
+#define GOOM_STRUCTS_H
 
 typedef struct {
     int x, y;
     int rotation;
 } player;
 
-#endif //BINARY_SPACE_PARTITIONING_STRUCTS_H
+#endif //GOOM_STRUCTS_H
