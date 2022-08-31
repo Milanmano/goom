@@ -31,6 +31,26 @@ void clearScreen() {
     }
 }
 
+void keyboard(unsigned char key, int x, int y) {
+    switch (key) {
+        case 'w':
+            printf("forward\n");
+            break;
+        case 's':
+            printf("backward\n");
+            break;
+        case 'a':
+            printf("turn left\n");
+            break;
+        case 'd':
+            printf("turn right\n");
+            break;
+        default:
+            printf("not mapped key\n");
+            break;
+    }
+}
+
 void render() {
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
@@ -51,6 +71,7 @@ int main(int argc, char *argv[]) {
     gluOrtho2D(0, GLUT_WINDOW_SIZE_WIDTH, 0, GLUT_WINDOW_SIZE_HEIGHT);
 
     glutDisplayFunc(render);
+    glutKeyboardFunc(keyboard);
     glutMainLoop();
     return 0;
 }
