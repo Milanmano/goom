@@ -25,11 +25,10 @@ void pixel(int x, int y, int rgb[3]) {
 }
 
 
-void drawWall(int x1, int b1, int t1, int x2, int b2, int t2) {
-    int color[3] = {255, 255, 0};
+void drawWall(int x1, int b1, int t1, int x2, int b2, int t2, int color[3]) {
     double dx = x2 - x1;
     if (dx == 0) {
-        dx = 0.1;
+        dx = 1;
     }
     int xs = x1;
 
@@ -137,7 +136,7 @@ void draw3D() {
     wx[3] = wx[3] * 200 / wy[3] + GLUT_WINDOW_SIZE_WIDTH / 2;
     wy[3] = wz[3] * 200 / wy[3] + GLUT_WINDOW_SIZE_HEIGHT / 2;
 
-    drawWall(wx[0], wy[0], wy[2], wx[1], wy[1], wy[3]);
+    drawWall(wx[0], wy[0], wy[2], wx[1], wy[1], wy[3], color);
 }
 
 void clearScreen() {
@@ -250,7 +249,7 @@ int main(int argc, char *argv[]) {
     glutInitWindowPosition(GLUT_WINDOW_POS_X, GLUT_WINDOW_POS_Y);
     glutInitWindowSize(GLUT_WINDOW_SIZE_WIDTH, GLUT_WINDOW_SIZE_HEIGHT);
     glutInitDisplayMode(GLUT_RGB | GLUT_DOUBLE);
-    glutCreateWindow("goom?");
+    glutCreateWindow("Goom");
     glPointSize(1);
     gluOrtho2D(0, GLUT_WINDOW_SIZE_WIDTH, 0, GLUT_WINDOW_SIZE_HEIGHT);
 
