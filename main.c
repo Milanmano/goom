@@ -9,13 +9,14 @@
 #define GLUT_WINDOW_POS_Y 100
 #define GLUT_WINDOW_POS_X 100
 
-#define GLUT_WINDOW_SIZE_WIDTH 640
-#define GLUT_WINDOW_SIZE_HEIGHT 480
+#define GLUT_WINDOW_SIZE_WIDTH 320
+#define GLUT_WINDOW_SIZE_HEIGHT 240
 
 #define PLAYER_SPEED 1
 
 player g_player;
 key g_pressedKeys;
+wall g_walls[4];
 
 void pixel(int x, int y, int rgb[3]) {
     glColor3ub(rgb[0], rgb[1], rgb[2]);
@@ -87,56 +88,59 @@ void clipBehindPlayer(int *x1, int *y1, int *z1, int x2, int y2, int z2) {
 }
 
 void draw3D() {
-    int color[3] = {255, 255, 0};
-
-    int wx[4], wy[4], wz[4];
-    int x1 = -10 - g_player.x;
-    int y1 = 10 - g_player.y;
-
-    int x2 = 10 - g_player.x;
-    int y2 = 10 - g_player.y;
-
-    wx[0] = x1 * cos(DegToRad(g_player.rotation)) - y1 * sin(DegToRad(g_player.rotation));
-    wx[1] = x2 * cos(DegToRad(g_player.rotation)) - y2 * sin(DegToRad(g_player.rotation));
-    wx[2] = wx[0];
-    wx[3] = wx[1];
-
-    wy[0] = y1 * cos(DegToRad(g_player.rotation)) + x1 * sin(DegToRad(g_player.rotation));
-    wy[1] = y2 * cos(DegToRad(g_player.rotation)) + x2 * sin(DegToRad(g_player.rotation));
-    wy[2] = wy[0];
-    wy[3] = wy[1];
-
-    wz[0] = 0 - 20;
-    wz[1] = 0 - 20;
-    wz[2] = 40 - 20;
-    wz[3] = 40 - 20;
 
 
-    if (wy[0] < 1 && wy[1] < 1) { return; }
+    for (int wall = 0; wall < sizeof(g_walls) / sizeof(g_walls[0]); wall++) {
+        int color[3] = {g_walls[wall].c[0], g_walls[wall].c[1], g_walls[wall].c[2]};
+        int wx[4], wy[4], wz[4];
+        int x1 = g_walls[wall].x1 - g_player.x;
+        int y1 = g_walls[wall].y1 - g_player.y;
 
-    if (wy[0] < 1) {
-        clipBehindPlayer(&wx[0], &wy[0], &wz[0], wx[1], wy[1], wz[1]);
-        clipBehindPlayer(&wx[2], &wy[2], &wz[2], wx[3], wy[3], wz[3]);
+        int x2 = g_walls[wall].x2 - g_player.x;
+        int y2 = g_walls[wall].y2 - g_player.y;
+
+        wx[0] = x1 * cos(DegToRad(g_player.rotation)) - y1 * sin(DegToRad(g_player.rotation));
+        wx[1] = x2 * cos(DegToRad(g_player.rotation)) - y2 * sin(DegToRad(g_player.rotation));
+        wx[2] = wx[0];
+        wx[3] = wx[1];
+
+        wy[0] = y1 * cos(DegToRad(g_player.rotation)) + x1 * sin(DegToRad(g_player.rotation));
+        wy[1] = y2 * cos(DegToRad(g_player.rotation)) + x2 * sin(DegToRad(g_player.rotation));
+        wy[2] = wy[0];
+        wy[3] = wy[1];
+
+        wz[0] = 0 - 20;
+        wz[1] = 0 - 20;
+        wz[2] = 40 - 20;
+        wz[3] = 40 - 20;
+
+
+        if (wy[0] < 1 && wy[1] < 1) { return; }
+
+        if (wy[0] < 1) {
+            clipBehindPlayer(&wx[0], &wy[0], &wz[0], wx[1], wy[1], wz[1]);
+            clipBehindPlayer(&wx[2], &wy[2], &wz[2], wx[3], wy[3], wz[3]);
+        }
+
+        if (wy[1] < 1) {
+            clipBehindPlayer(&wx[1], &wy[1], &wz[1], wx[0], wy[0], wz[0]);
+            clipBehindPlayer(&wx[3], &wy[3], &wz[3], wx[2], wy[2], wz[2]);
+        }
+
+        wx[0] = wx[0] * 200 / wy[0] + GLUT_WINDOW_SIZE_WIDTH / 2;
+        wy[0] = wz[0] * 200 / wy[0] + GLUT_WINDOW_SIZE_HEIGHT / 2;
+
+        wx[1] = wx[1] * 200 / wy[1] + GLUT_WINDOW_SIZE_WIDTH / 2;
+        wy[1] = wz[1] * 200 / wy[1] + GLUT_WINDOW_SIZE_HEIGHT / 2;
+
+        wx[2] = wx[2] * 200 / wy[2] + GLUT_WINDOW_SIZE_WIDTH / 2;
+        wy[2] = wz[2] * 200 / wy[2] + GLUT_WINDOW_SIZE_HEIGHT / 2;
+
+        wx[3] = wx[3] * 200 / wy[3] + GLUT_WINDOW_SIZE_WIDTH / 2;
+        wy[3] = wz[3] * 200 / wy[3] + GLUT_WINDOW_SIZE_HEIGHT / 2;
+
+        drawWall(wx[0], wy[0], wy[2], wx[1], wy[1], wy[3], color);
     }
-
-    if (wy[1] < 1) {
-        clipBehindPlayer(&wx[1], &wy[1], &wz[1], wx[0], wy[0], wz[0]);
-        clipBehindPlayer(&wx[3], &wy[3], &wz[3], wx[2], wy[2], wz[2]);
-    }
-
-    wx[0] = wx[0] * 200 / wy[0] + GLUT_WINDOW_SIZE_WIDTH / 2;
-    wy[0] = wz[0] * 200 / wy[0] + GLUT_WINDOW_SIZE_HEIGHT / 2;
-
-    wx[1] = wx[1] * 200 / wy[1] + GLUT_WINDOW_SIZE_WIDTH / 2;
-    wy[1] = wz[1] * 200 / wy[1] + GLUT_WINDOW_SIZE_HEIGHT / 2;
-
-    wx[2] = wx[2] * 200 / wy[2] + GLUT_WINDOW_SIZE_WIDTH / 2;
-    wy[2] = wz[2] * 200 / wy[2] + GLUT_WINDOW_SIZE_HEIGHT / 2;
-
-    wx[3] = wx[3] * 200 / wy[3] + GLUT_WINDOW_SIZE_WIDTH / 2;
-    wy[3] = wz[3] * 200 / wy[3] + GLUT_WINDOW_SIZE_HEIGHT / 2;
-
-    drawWall(wx[0], wy[0], wy[2], wx[1], wy[1], wy[3], color);
 }
 
 void clearScreen() {
@@ -233,6 +237,38 @@ void render() {
 
 void initialization() {
     timer();
+
+    g_walls[0].x1 = -10;
+    g_walls[0].y1 = 10;
+    g_walls[0].x2 = 10;
+    g_walls[0].y2 = 10;
+    g_walls[0].c[0] = 255;
+    g_walls[0].c[1] = 255;
+    g_walls[0].c[2] = 0;
+
+    g_walls[1].x1 = -10;
+    g_walls[1].y1 = 30;
+    g_walls[1].x2 = -10;
+    g_walls[1].y2 = 10;
+    g_walls[1].c[0] = 0;
+    g_walls[1].c[1] = 255;
+    g_walls[1].c[2] = 255;
+
+    g_walls[2].x1 = 10;
+    g_walls[2].y1 = 30;
+    g_walls[2].x2 = -10;
+    g_walls[2].y2 = 30;
+    g_walls[2].c[0] = 0;
+    g_walls[2].c[1] = 255;
+    g_walls[2].c[2] = 0;
+
+    g_walls[3].x1 = 10;
+    g_walls[3].y1 = 10;
+    g_walls[3].x2 = 10;
+    g_walls[3].y2 = 30;
+    g_walls[3].c[0] = 255;
+    g_walls[3].c[1] = 0;
+    g_walls[3].c[2] = 255;
 
     g_player.x = 0.0;
     g_player.y = 0.0;
