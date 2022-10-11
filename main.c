@@ -17,6 +17,7 @@
 player g_player;
 key g_pressedKeys;
 wall g_walls[4];
+int g_window[2];
 
 void pixel(int x, int y, int rgb[3]) {
     glColor3ub(rgb[0], rgb[1], rgb[2]);
@@ -143,11 +144,11 @@ void draw3D() {
     }
 }
 
-void clearScreen() {
+void clearScreen(int left, int right, int bottom, int top) {
     int color[3] = {0, 60, 130};
     int x, y;
-    for (x = 0; x < GLUT_WINDOW_SIZE_WIDTH; x++) {
-        for (y = 0; y < GLUT_WINDOW_SIZE_HEIGHT; y++) {
+    for (x = left; x < right; x++) {
+        for (y = bottom; y < top; y++) {
             pixel(x, y, color);
         }
     }
@@ -219,19 +220,59 @@ void move() {
 }
 
 void timer() {
+    glutSetWindow(g_window[0]);
+    glutPostRedisplay();
+    glutSetWindow(g_window[1]);
     glutPostRedisplay();
     glutTimerFunc(1000 / 60, timer, 0);
 }
 
 void render() {
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-
-    clearScreen();
+    clearScreen(0, GLUT_WINDOW_SIZE_WIDTH, 0, GLUT_WINDOW_SIZE_HEIGHT);
 
     move();
     draw3D();
     printf("pos: (%f, %f) rot: %i\n", g_player.x, g_player.y, g_player.rotation);
 
+    glutSwapBuffers();
+}
+
+void overhead() {
+    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+    clearScreen(-GLUT_WINDOW_SIZE_WIDTH / 2, GLUT_WINDOW_SIZE_WIDTH, -GLUT_WINDOW_SIZE_HEIGHT / 2,
+                GLUT_WINDOW_SIZE_HEIGHT / 2);
+
+
+    for (int wall = 0; wall < sizeof(g_walls) / sizeof(g_walls[0]); wall++) {
+        int wallColor[3] = {g_walls[wall].c[0], g_walls[wall].c[1], g_walls[wall].c[2]};
+
+        int fromX, toX, fromY, toY;
+        if (g_walls[wall].x1 < g_walls[wall].x2) {
+            fromX = g_walls[wall].x1;
+            toX = g_walls[wall].x2;
+        } else {
+            fromX = g_walls[wall].x2;
+            toX = g_walls[wall].x1;
+        }
+
+        if (g_walls[wall].y1 < g_walls[wall].y2) {
+            fromY = g_walls[wall].y1;
+            toY = g_walls[wall].y2;
+        } else {
+            fromY = g_walls[wall].y2;
+            toY = g_walls[wall].y1;
+        }
+
+        for (int i = fromX; i <= toX; i++) {
+            for (int j = fromY; j <= toY; j++) {
+                pixel(i, j, wallColor);
+            }
+        }
+    }
+
+    int playerColor[3] = {255, 255, 0};
+    pixel(g_player.x, g_player.y, playerColor);
     glutSwapBuffers();
 }
 
@@ -285,7 +326,7 @@ int main(int argc, char *argv[]) {
     glutInitWindowPosition(GLUT_WINDOW_POS_X, GLUT_WINDOW_POS_Y);
     glutInitWindowSize(GLUT_WINDOW_SIZE_WIDTH, GLUT_WINDOW_SIZE_HEIGHT);
     glutInitDisplayMode(GLUT_RGB | GLUT_DOUBLE);
-    glutCreateWindow("Goom");
+    g_window[0] = glutCreateWindow("Goom");
     glPointSize(1);
     gluOrtho2D(0, GLUT_WINDOW_SIZE_WIDTH, 0, GLUT_WINDOW_SIZE_HEIGHT);
 
@@ -294,6 +335,13 @@ int main(int argc, char *argv[]) {
     glutDisplayFunc(render);
     glutKeyboardFunc(keyboard);
     glutKeyboardUpFunc(keyboardUp);
+
+    g_window[1] = glutCreateWindow("Overhead");
+    glutDisplayFunc(overhead);
+    gluOrtho2D(-GLUT_WINDOW_SIZE_WIDTH / 2, GLUT_WINDOW_SIZE_WIDTH / 2, -GLUT_WINDOW_SIZE_HEIGHT / 2,
+               GLUT_WINDOW_SIZE_HEIGHT / 2);
+
+
     glutMainLoop();
     return 0;
 }

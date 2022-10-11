@@ -13,5 +13,8 @@ OTHER TODO:
 - prevent rescale of window
 - pixel scaling
 - float multiply with int?
+- reorg overhead code
 
-https://www.youtube.com/watch?v=Yqm2KnDvzAc
+BUGS:
+
+- weird clipping on other walls than the yellow
