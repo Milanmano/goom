@@ -276,9 +276,46 @@ void overhead() {
     glutSwapBuffers();
 }
 
+void setWallData(char *line, int lineNumber) {
+    char *lineNext;
+    g_walls[lineNumber].x1 = strtol(line, &lineNext, 10);
+    g_walls[lineNumber].y1 = strtol(lineNext, &lineNext, 10);
+    g_walls[lineNumber].x2 = strtol(lineNext, &lineNext, 10);
+    g_walls[lineNumber].y2 = strtol(lineNext, &lineNext, 10);
+    g_walls[lineNumber].c[0] = strtol(lineNext, &lineNext, 10);
+    g_walls[lineNumber].c[1] = strtol(lineNext, &lineNext, 10);
+    g_walls[lineNumber].c[2] = strtol(lineNext, &lineNext, 10);
+
+}
+
+void fileRead() {
+    FILE *fp;
+    char *line = NULL;
+    size_t len = 0;
+    int lineNumber = 0;
+
+    fp = fopen("./map", "r");
+    if (fp == NULL) {
+        exit(EXIT_FAILURE);
+    }
+    while (getline(&line, &len, fp) != -1) {
+        setWallData(line, lineNumber);
+        lineNumber++;
+    }
+
+    free(line);
+    fclose(fp);
+}
+
 void initialization() {
     timer();
 
+    fileRead();
+
+    printf("%d %d %d %d %d %d %d", g_walls[0].x1, g_walls[0].y1, g_walls[0].x2, g_walls[0].y2, g_walls[0].c[0],
+           g_walls[0].c[1], g_walls[0].c[2]);
+
+/*
     g_walls[0].x1 = -10;
     g_walls[0].y1 = 10;
     g_walls[0].x2 = 10;
@@ -310,7 +347,7 @@ void initialization() {
     g_walls[3].c[0] = 255;
     g_walls[3].c[1] = 0;
     g_walls[3].c[2] = 255;
-
+*/
     g_player.x = 0.0;
     g_player.y = 0.0;
     g_player.rotation = 0;
