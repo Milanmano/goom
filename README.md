@@ -6,7 +6,7 @@ TODO:
 - ???
 - profit
 
-  OTHER TODO:
+OTHER TODO:
 
 - prevent rescale of window
 - pixel scaling
@@ -14,6 +14,4 @@ TODO:
 - reorg overhead code
 - top and bottom plane
 
-  BUGS:
-
-- weird clipping on other walls than the yellow
+BUGS:

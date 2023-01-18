@@ -4,7 +4,6 @@
 #include "structs.h"
 
 #define DegToRad(angleInDegrees) ((angleInDegrees) * M_PI / 180.0)
-#define RadToDeg(angleInRadians) ((angleInRadians) * 180.0 / M_PI)
 
 #define GLUT_WINDOW_POS_Y 100
 #define GLUT_WINDOW_POS_X 100
@@ -12,11 +11,11 @@
 #define GLUT_WINDOW_SIZE_WIDTH 320
 #define GLUT_WINDOW_SIZE_HEIGHT 240
 
-#define PLAYER_SPEED 1
+#define NUM_OF_WALLS 8
 
 player g_player;
 key g_pressedKeys;
-wall g_walls[4];
+wall g_walls[NUM_OF_WALLS];
 int g_window[2];
 
 void pixel(int x, int y, int rgb[3]) {
@@ -116,7 +115,7 @@ void draw3D() {
         wz[3] = 40 - 20;
 
 
-        if (wy[0] < 1 && wy[1] < 1) { return; }
+        if (wy[0] < 1 && wy[1] < 1) { continue; }
 
         if (wy[0] < 1) {
             clipBehindPlayer(&wx[0], &wy[0], &wz[0], wx[1], wy[1], wz[1]);
@@ -298,6 +297,7 @@ void fileRead() {
     if (fp == NULL) {
         exit(EXIT_FAILURE);
     }
+
     while (getline(&line, &len, fp) != -1) {
         setWallData(line, lineNumber);
         lineNumber++;
@@ -312,44 +312,8 @@ void initialization() {
 
     fileRead();
 
-    printf("%d %d %d %d %d %d %d", g_walls[0].x1, g_walls[0].y1, g_walls[0].x2, g_walls[0].y2, g_walls[0].c[0],
-           g_walls[0].c[1], g_walls[0].c[2]);
-
-/*
-    g_walls[0].x1 = -10;
-    g_walls[0].y1 = 10;
-    g_walls[0].x2 = 10;
-    g_walls[0].y2 = 10;
-    g_walls[0].c[0] = 255;
-    g_walls[0].c[1] = 255;
-    g_walls[0].c[2] = 0;
-
-    g_walls[1].x1 = -10;
-    g_walls[1].y1 = 30;
-    g_walls[1].x2 = -10;
-    g_walls[1].y2 = 10;
-    g_walls[1].c[0] = 0;
-    g_walls[1].c[1] = 255;
-    g_walls[1].c[2] = 255;
-
-    g_walls[2].x1 = 10;
-    g_walls[2].y1 = 30;
-    g_walls[2].x2 = -10;
-    g_walls[2].y2 = 30;
-    g_walls[2].c[0] = 0;
-    g_walls[2].c[1] = 255;
-    g_walls[2].c[2] = 0;
-
-    g_walls[3].x1 = 10;
-    g_walls[3].y1 = 10;
-    g_walls[3].x2 = 10;
-    g_walls[3].y2 = 30;
-    g_walls[3].c[0] = 255;
-    g_walls[3].c[1] = 0;
-    g_walls[3].c[2] = 255;
-*/
-    g_player.x = 0.0;
-    g_player.y = 0.0;
+    g_player.x = 50;
+    g_player.y = 50;
     g_player.rotation = 0;
 
     g_pressedKeys.w = 0;
@@ -373,6 +337,7 @@ int main(int argc, char *argv[]) {
     glutKeyboardFunc(keyboard);
     glutKeyboardUpFunc(keyboardUp);
 
+    glutInitWindowPosition(GLUT_WINDOW_POS_X + GLUT_WINDOW_SIZE_WIDTH, GLUT_WINDOW_POS_Y);
     g_window[1] = glutCreateWindow("Overhead");
     glutDisplayFunc(overhead);
     gluOrtho2D(-GLUT_WINDOW_SIZE_WIDTH / 2, GLUT_WINDOW_SIZE_WIDTH / 2, -GLUT_WINDOW_SIZE_HEIGHT / 2,
