@@ -17,6 +17,7 @@ player g_player;
 key g_pressedKeys;
 wall g_walls[NUM_OF_WALLS];
 int g_window[2];
+tree *g_tree;
 
 void pixel(int x, int y, int rgb[3]) {
     glColor3ub(rgb[0], rgb[1], rgb[2]);
@@ -302,6 +303,13 @@ void fileRead() {
         setWallData(line, lineNumber);
         lineNumber++;
     }
+
+    g_tree = createTree();
+    for (int wall = 0; wall < sizeof(g_walls) / sizeof(g_walls[0]); wall++) {
+        insert_node(&g_tree->root, g_walls[wall].x1, g_walls[wall].y1, g_walls[wall].x2, g_walls[wall].y2);
+    }
+
+    print_tree(g_tree->root);
 
     free(line);
     fclose(fp);

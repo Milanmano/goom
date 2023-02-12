@@ -1,7 +1,5 @@
 TODO:
 
-- build bsp tree
-- read bsp tree
 - draw based on bsp tree
 - ???
 - profit
