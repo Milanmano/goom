@@ -1,5 +1,6 @@
 #include <math.h>
 #include <stdio.h>
+#include <GL/glew.h>
 #include <GL/glut.h>
 #include "structs.h"
 
@@ -71,7 +72,6 @@ void drawWall(int x1, int b1, int t1, int x2, int b2, int t2, int color[3]) {
     }
 }
 
-//try to understand this method
 void clipBehindPlayer(int *x1, int *y1, int *z1, int x2, int y2, int z2) {
     float da = *y1;
     float db = y2;
@@ -144,6 +144,7 @@ void draw3D() {
     }
 }
 
+//TODO:
 void clearScreen(int left, int right, int bottom, int top) {
     int color[3] = {0, 60, 130};
     int x, y;
@@ -290,7 +291,7 @@ void setWallData(char *line, int lineNumber) {
 
 void fileRead() {
     FILE *fp;
-    char *line = NULL;
+    char line[100];
     size_t len = 0;
     int lineNumber = 0;
 
@@ -299,7 +300,7 @@ void fileRead() {
         exit(EXIT_FAILURE);
     }
 
-    while (getline(&line, &len, fp) != -1) {
+    while (fgets(line, sizeof(line), fp)) {
         setWallData(line, lineNumber);
         lineNumber++;
     }
@@ -310,14 +311,12 @@ void fileRead() {
     }
 
     print_tree(g_tree->root);
-
-    free(line);
+    
     fclose(fp);
 }
 
 void initialization() {
     timer();
-
     fileRead();
 
     g_player.x = 50;
@@ -335,6 +334,8 @@ int main(int argc, char *argv[]) {
     glutInitWindowPosition(GLUT_WINDOW_POS_X, GLUT_WINDOW_POS_Y);
     glutInitWindowSize(GLUT_WINDOW_SIZE_WIDTH, GLUT_WINDOW_SIZE_HEIGHT);
     glutInitDisplayMode(GLUT_RGB | GLUT_DOUBLE);
+
+
     g_window[0] = glutCreateWindow("Goom");
     glPointSize(1);
     gluOrtho2D(0, GLUT_WINDOW_SIZE_WIDTH, 0, GLUT_WINDOW_SIZE_HEIGHT);
@@ -348,8 +349,31 @@ int main(int argc, char *argv[]) {
     glutInitWindowPosition(GLUT_WINDOW_POS_X + GLUT_WINDOW_SIZE_WIDTH, GLUT_WINDOW_POS_Y);
     g_window[1] = glutCreateWindow("Overhead");
     glutDisplayFunc(overhead);
+
+    GLenum glewStatus = glewInit();
+    if (glewStatus != GLEW_OK) {
+        printf("GLEW error: %s\n", glewGetErrorString(glewStatus));
+        exit(EXIT_FAILURE);
+    }
+
     gluOrtho2D(-GLUT_WINDOW_SIZE_WIDTH / 2, GLUT_WINDOW_SIZE_WIDTH / 2, -GLUT_WINDOW_SIZE_HEIGHT / 2,
                GLUT_WINDOW_SIZE_HEIGHT / 2);
+
+    // Initialize the VBO and line vertices
+    GLuint vbo;
+    glGenBuffers(1, &vbo);
+    glBindBuffer(GL_ARRAY_BUFFER, vbo);
+
+    float startX = 100.0f;
+    float startY = 100.0f;
+    float endX = 200.0f;
+    float endY = 200.0f;
+    float lineVertices[] = {startX, startY, endX, endY};
+    glBufferData(GL_ARRAY_BUFFER, sizeof(lineVertices), lineVertices, GL_DYNAMIC_DRAW);
+
+    // Enable vertex arrays and set up the vertex pointer
+    glEnableClientState(GL_VERTEX_ARRAY);
+    glVertexPointer(2, GL_FLOAT, 0, 0);
 
 
     glutMainLoop();

@@ -5,7 +5,7 @@ set(CMAKE_C_STANDARD 99)
 
 add_executable(goom main.c structs.h)
 
-target_link_libraries(goom -lOpenGL32 -lfreeGLUT -lGLU32)
+target_link_libraries(goom -lOpenGL32 -lGLU32 -lfreeGLUT -lglew32)
 
 add_custom_command(
         TARGET ${PROJECT_NAME} POST_BUILD
