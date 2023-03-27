@@ -34,6 +34,8 @@ struct tree *createTree() {
     return tree;
 }
 
+
+//TODO: move method
 void insert_node(struct node **node, double start_x, double start_y, double end_x, double end_y) {
     if (*node == NULL) {
         *node = (struct node *) malloc(sizeof(struct node));
@@ -55,6 +57,7 @@ void insert_node(struct node **node, double start_x, double start_y, double end_
     }
 }
 
+//TODO: move method
 void print_tree(struct node *node) {
     if (node != NULL) {
         print_tree(node->left);
