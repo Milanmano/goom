@@ -45,7 +45,6 @@ void drawWall(int x1, int b1, int t1, int x2, int b2, int t2, int color[3]) {
         x2 = GLUT_WINDOW_SIZE_WIDTH;
     }
 
-
     for (int x = x1; x < x2; x++) {
         int bys = (b2 - b1) * (x - xs) / dx + b1;
         int tys = (t2 - t1) * (x - xs) / dx + t1;
@@ -63,9 +62,7 @@ void drawWall(int x1, int b1, int t1, int x2, int b2, int t2, int color[3]) {
             tys = GLUT_WINDOW_SIZE_HEIGHT;
         }
 
-        for (int y = bys; y < tys; y++) {
-            //pixel(x, y, color);
-        }
+        draw_line(vec2_init(x, bys), vec2_init(x, tys), vec3_init(color[0], color[1], color[2]));
     }
 }
 
@@ -86,8 +83,6 @@ void clipBehindPlayer(int *x1, int *y1, int *z1, int x2, int y2, int z2) {
 }
 
 void draw3D() {
-
-
     for (int wall = 0; wall < sizeof(g_walls) / sizeof(g_walls[0]); wall++) {
         int color[3] = {g_walls[wall].c[0], g_walls[wall].c[1], g_walls[wall].c[2]};
         int wx[4], wy[4], wz[4];
@@ -218,9 +213,8 @@ void render() {
     glGetError();
 
     move();
-    //draw3D();
+    draw3D();
     printf("pos: (%f, %f) rot: %i\n", g_player.x, g_player.y, g_player.rotation);
-    draw_line(vec2_init(0, 0), vec2_init(100, 200));
 
     glutSwapBuffers();
 }

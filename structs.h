@@ -101,13 +101,32 @@ typedef struct line {
 } line;
 
 
-void draw_line(vec2 *start, vec2 *end) {
+void draw_line(vec2 *start, vec2 *end, vec3 *color) {
 
     line *l = (line *) malloc(sizeof(line));
 
+    float x1 = start->x;
+    float y1 = start->y;
+    float x2 = end->x;
+    float y2 = end->y;
+    float w = 320;
+    float h = 240;
+
+    // convert 3d world space position 2d screen space position
+    x1 = 2 * x1 / w - 1;
+    y1 = 2 * y1 / h - 1;
+
+    x2 = 2 * x2 / w - 1;
+    y2 = 2 * y2 / h - 1;
+
+    start->x = x1;
+    start->y = y1;
+    end->x = x2;
+    end->y = y2;
+
     l->startPoint = start;
     l->endPoint = end;
-    l->lineColor = vec3_init(1.0f, 1.0f, 1.0f);
+    l->lineColor = color;
 
     // setting vertex data
     l->vertices = (float *) (malloc(sizeof(float) * 6));
