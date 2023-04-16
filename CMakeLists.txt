@@ -3,7 +3,7 @@ project(goom C)
 
 set(CMAKE_C_STANDARD 99)
 
-add_executable(goom main.c structs.h)
+add_executable(goom main.c structs.h asd.c)
 
 target_link_libraries(goom -lOpenGL32 -lGLU32 -lfreeGLUT -lglew32)
 

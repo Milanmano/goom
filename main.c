@@ -2,6 +2,7 @@
 #include <stdio.h>
 #include <GL/glew.h>
 #include <GL/glut.h>
+#include <GL/freeglut.h>
 #include "structs.h"
 
 #define DegToRad(angleInDegrees) ((angleInDegrees) * M_PI / 180.0)
@@ -20,12 +21,8 @@ wall g_walls[NUM_OF_WALLS];
 int g_window[2];
 tree *g_tree;
 
-void pixel(int x, int y, int rgb[3]) {
-    glColor3ub(rgb[0], rgb[1], rgb[2]);
-    glBegin(GL_POINTS);
-    glVertex2i(x, y);
-    glEnd();
-}
+line *line1;
+GLuint g_shaderProgram;
 
 
 void drawWall(int x1, int b1, int t1, int x2, int b2, int t2, int color[3]) {
@@ -67,7 +64,7 @@ void drawWall(int x1, int b1, int t1, int x2, int b2, int t2, int color[3]) {
         }
 
         for (int y = bys; y < tys; y++) {
-            pixel(x, y, color);
+            //pixel(x, y, color);
         }
     }
 }
@@ -144,17 +141,6 @@ void draw3D() {
     }
 }
 
-//TODO:
-void clearScreen(int left, int right, int bottom, int top) {
-    int color[3] = {0, 60, 130};
-    int x, y;
-    for (x = left; x < right; x++) {
-        for (y = bottom; y < top; y++) {
-            pixel(x, y, color);
-        }
-    }
-}
-
 void keyboard(unsigned char key, int x, int y) {
     switch (key) {
         case 'w':
@@ -223,57 +209,19 @@ void move() {
 void timer() {
     glutSetWindow(g_window[0]);
     glutPostRedisplay();
-    glutSetWindow(g_window[1]);
-    glutPostRedisplay();
     glutTimerFunc(1000 / 60, timer, 0);
 }
 
 void render() {
-    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-    clearScreen(0, GLUT_WINDOW_SIZE_WIDTH, 0, GLUT_WINDOW_SIZE_HEIGHT);
+    glClearColor(0, 0.2f, 0.5f, 0);
+    glClear(GL_COLOR_BUFFER_BIT);
+    glGetError();
 
     move();
-    draw3D();
+    //draw3D();
     printf("pos: (%f, %f) rot: %i\n", g_player.x, g_player.y, g_player.rotation);
+    draw_line(vec2_init(0, 0), vec2_init(100, 200));
 
-    glutSwapBuffers();
-}
-
-void overhead() {
-    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-    clearScreen(-GLUT_WINDOW_SIZE_WIDTH / 2, GLUT_WINDOW_SIZE_WIDTH, -GLUT_WINDOW_SIZE_HEIGHT / 2,
-                GLUT_WINDOW_SIZE_HEIGHT / 2);
-
-
-    for (int wall = 0; wall < sizeof(g_walls) / sizeof(g_walls[0]); wall++) {
-        int wallColor[3] = {g_walls[wall].c[0], g_walls[wall].c[1], g_walls[wall].c[2]};
-
-        int fromX, toX, fromY, toY;
-        if (g_walls[wall].x1 < g_walls[wall].x2) {
-            fromX = g_walls[wall].x1;
-            toX = g_walls[wall].x2;
-        } else {
-            fromX = g_walls[wall].x2;
-            toX = g_walls[wall].x1;
-        }
-
-        if (g_walls[wall].y1 < g_walls[wall].y2) {
-            fromY = g_walls[wall].y1;
-            toY = g_walls[wall].y2;
-        } else {
-            fromY = g_walls[wall].y2;
-            toY = g_walls[wall].y1;
-        }
-
-        for (int i = fromX; i <= toX; i++) {
-            for (int j = fromY; j <= toY; j++) {
-                pixel(i, j, wallColor);
-            }
-        }
-    }
-
-    int playerColor[3] = {255, 255, 0};
-    pixel(g_player.x, g_player.y, playerColor);
     glutSwapBuffers();
 }
 
@@ -311,7 +259,6 @@ void fileRead() {
     }
 
     print_tree(g_tree->root);
-    
     fclose(fp);
 }
 
@@ -329,16 +276,57 @@ void initialization() {
     g_pressedKeys.d = 0;
 }
 
+GLuint generateShaderProgram() {
+    const char *vertexShaderSource = "#version 330 core\n"
+                                     "layout (location = 0) in vec3 aPos;\n"
+                                     "void main()\n"
+                                     "{\n"
+                                     "   gl_Position = vec4(aPos.x, aPos.y, aPos.z, 1.0);\n"
+                                     "}\0";
+    const char *fragmentShaderSource = "#version 330 core\n"
+                                       "out vec4 FragColor;\n"
+                                       "uniform vec3 color;\n"
+                                       "void main()\n"
+                                       "{\n"
+                                       "   FragColor = vec4(color, 1.0f);\n"
+                                       "}\n\0";
+
+    // vertex shader
+    int vertexShader = glCreateShader(GL_VERTEX_SHADER);
+    glShaderSource(vertexShader, 1, &vertexShaderSource, NULL);
+    glCompileShader(vertexShader);
+
+    // fragment shader
+    int fragmentShader = glCreateShader(GL_FRAGMENT_SHADER);
+    glShaderSource(fragmentShader, 1, &fragmentShaderSource, NULL);
+    glCompileShader(fragmentShader);
+
+    // link shaders
+    GLuint shaderProgram = glCreateProgram();
+    glAttachShader(shaderProgram, vertexShader);
+    glAttachShader(shaderProgram, fragmentShader);
+    glLinkProgram(shaderProgram);
+
+    glDeleteShader(vertexShader);
+    glDeleteShader(fragmentShader);
+
+    glDetachShader(shaderProgram, vertexShader);
+    glDetachShader(shaderProgram, fragmentShader);
+
+    glUseProgram(shaderProgram);
+    return shaderProgram;
+}
+
 int main(int argc, char *argv[]) {
     glutInit(&argc, argv);
+    glutInitContextVersion(4, 6);
+    glutInitContextProfile(GLUT_CORE_PROFILE);
     glutInitWindowPosition(GLUT_WINDOW_POS_X, GLUT_WINDOW_POS_Y);
     glutInitWindowSize(GLUT_WINDOW_SIZE_WIDTH, GLUT_WINDOW_SIZE_HEIGHT);
     glutInitDisplayMode(GLUT_RGB | GLUT_DOUBLE);
 
-
     g_window[0] = glutCreateWindow("Goom");
     glPointSize(1);
-    gluOrtho2D(0, GLUT_WINDOW_SIZE_WIDTH, 0, GLUT_WINDOW_SIZE_HEIGHT);
 
     initialization();
 
@@ -346,36 +334,14 @@ int main(int argc, char *argv[]) {
     glutKeyboardFunc(keyboard);
     glutKeyboardUpFunc(keyboardUp);
 
-    glutInitWindowPosition(GLUT_WINDOW_POS_X + GLUT_WINDOW_SIZE_WIDTH, GLUT_WINDOW_POS_Y);
-    g_window[1] = glutCreateWindow("Overhead");
-    glutDisplayFunc(overhead);
-
     GLenum glewStatus = glewInit();
     if (glewStatus != GLEW_OK) {
         printf("GLEW error: %s\n", glewGetErrorString(glewStatus));
         exit(EXIT_FAILURE);
     }
 
-    gluOrtho2D(-GLUT_WINDOW_SIZE_WIDTH / 2, GLUT_WINDOW_SIZE_WIDTH / 2, -GLUT_WINDOW_SIZE_HEIGHT / 2,
-               GLUT_WINDOW_SIZE_HEIGHT / 2);
-
-    // Initialize the VBO and line vertices
-    GLuint vbo;
-    glGenBuffers(1, &vbo);
-    glBindBuffer(GL_ARRAY_BUFFER, vbo);
-
-    float startX = 100.0f;
-    float startY = 100.0f;
-    float endX = 200.0f;
-    float endY = 200.0f;
-    float lineVertices[] = {startX, startY, endX, endY};
-    glBufferData(GL_ARRAY_BUFFER, sizeof(lineVertices), lineVertices, GL_DYNAMIC_DRAW);
-
-    // Enable vertex arrays and set up the vertex pointer
-    glEnableClientState(GL_VERTEX_ARRAY);
-    glVertexPointer(2, GL_FLOAT, 0, 0);
-
-
+    glViewport(0, 0, GLUT_WINDOW_SIZE_WIDTH, GLUT_WINDOW_SIZE_HEIGHT);
+    g_shaderProgram = generateShaderProgram();
     glutMainLoop();
     return 0;
 }
