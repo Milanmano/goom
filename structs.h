@@ -1,6 +1,10 @@
 #ifndef GOOM_STRUCTS_H
 #define GOOM_STRUCTS_H
 
+#define LEFT_SIDE (-1)
+#define RIGHT_SIDE 1
+#define ON_SPLIT_LINE 0
+
 typedef struct {
     double x, y;
     int rotation;
@@ -15,53 +19,96 @@ typedef struct {
     int c[3];
 } wall;
 
-typedef struct node {
-    double start_x;
-    double start_y;
-    double end_x;
-    double end_y;
-    struct node *left;
-    struct node *right;
-} node;
+typedef struct {
+    double x;
+    double y;
+} Point;
 
-typedef struct tree {
-    struct node *root;
-} tree;
+typedef struct {
+    Point start;
+    Point end;
+    int color[3];
+} Line;
 
-struct tree *createTree() {
-    struct tree *tree = (struct tree *) malloc(sizeof(struct tree));
-    tree->root = NULL;
-    return tree;
+typedef struct Node {
+    Line line;
+    struct Node *left;
+    struct Node *right;
+} Node;
+
+Node *createNode(Line line) {
+    Node *newNode = (Node *) malloc(sizeof(Node));
+    newNode->line = line;
+    newNode->left = NULL;
+    newNode->right = NULL;
+    return newNode;
 }
 
+int getSide(Line splitLine, Point point) {
+    // Compute the determinant of the 2x2 matrix formed by the vectors (splitLine.end - splitLine.start) and (line.start - splitLine.start)
+    double det = (splitLine.end.x - splitLine.start.x) * (point.y - splitLine.start.y) -
+                 (point.x - splitLine.start.x) * (splitLine.end.y - splitLine.start.y);
 
-//TODO: move method
-void insert_node(struct node **node, double start_x, double start_y, double end_x, double end_y) {
-    if (*node == NULL) {
-        *node = (struct node *) malloc(sizeof(struct node));
-        (*node)->left = NULL;
-        (*node)->right = NULL;
-        (*node)->start_x = start_x;
-        (*node)->start_y = start_y;
-        (*node)->end_x = end_x;
-        (*node)->end_y = end_y;
+    if (det < 0) {
+        return LEFT_SIDE;
+    } else if (det > 0) {
+        return RIGHT_SIDE;
     } else {
-        double slope = ((*node)->end_y - (*node)->start_y) / ((*node)->end_x - (*node)->start_x);
-        double intercept = (*node)->end_y - slope * (*node)->end_x;
+        return ON_SPLIT_LINE;
+    }
+}
 
-        if (start_y - slope * start_x > intercept) {
-            insert_node(&(*node)->left, start_x, start_y, end_x, end_y);
-        } else {
-            insert_node(&(*node)->right, start_x, start_y, end_x, end_y);
+Node *buildBSP(Line *lines, int numLines) {
+    if (numLines == 0) {
+        return NULL;
+    } else {
+        // Choose a random line as the splitting line
+        int randomIndex = rand() % numLines;
+        Line splitLine = lines[randomIndex];
+
+        // Split the lines into left and right sets based on which side of the splitting line they lie
+        Line leftLines[100];
+        Line rightLines[100];
+        int numLeftLines = 0;
+        int numRightLines = 0;
+        for (int i = 0; i < numLines; i++) {
+            if (i == randomIndex) {
+                continue; // Skip the splitting line
+            }
+            int side = getSide(splitLine, lines[i].start);
+
+            if (side == LEFT_SIDE) {
+                leftLines[numLeftLines++] = lines[i];
+            } else if (side == RIGHT_SIDE) {
+                rightLines[numRightLines++] = lines[i];
+            } else {
+                // If the line is coincident with the splitting line, randomly assign it to one side or the other
+                if (rand() % 2 == 0) {
+                    leftLines[numLeftLines++] = lines[i];
+                } else {
+                    rightLines[numRightLines++] = lines[i];
+                }
+            }
         }
+
+        // Build the left and right subtrees recursively
+        Node *leftSubtree = buildBSP(leftLines, numLeftLines);
+        Node *rightSubtree = buildBSP(rightLines, numRightLines);
+
+        // Create a new node for the splitting line and return the tree
+        Node *newNode = createNode(splitLine);
+        newNode->left = leftSubtree;
+        newNode->right = rightSubtree;
+        return newNode;
     }
 }
 
 //TODO: move method
-void print_tree(struct node *node) {
+void print_tree(struct Node *node) {
     if (node != NULL) {
         print_tree(node->left);
-        printf("(%.0f,%.0f) -> (%.0f,%.0f)\n", node->start_x, node->start_y, node->end_x, node->end_y);
+        printf("(%.0f,%.0f) -> (%.0f,%.0f)\n", node->line.start.x, node->line.start.y, node->line.end.x,
+               node->line.end.y);
         print_tree(node->right);
     }
 }
