@@ -15,11 +15,6 @@ typedef struct {
 } key;
 
 typedef struct {
-    int x1, y1, x2, y2;
-    int c[3];
-} wall;
-
-typedef struct {
     double x;
     double y;
 } Point;
@@ -45,7 +40,6 @@ Node *createNode(Line line) {
 }
 
 int getSide(Line splitLine, Point point) {
-    // Compute the determinant of the 2x2 matrix formed by the vectors (splitLine.end - splitLine.start) and (line.start - splitLine.start)
     double det = (splitLine.end.x - splitLine.start.x) * (point.y - splitLine.start.y) -
                  (point.x - splitLine.start.x) * (splitLine.end.y - splitLine.start.y);
 
@@ -62,27 +56,46 @@ Node *buildBSP(Line *lines, int numLines) {
     if (numLines == 0) {
         return NULL;
     } else {
-        // Choose a random line as the splitting line
         int randomIndex = rand() % numLines;
         Line splitLine = lines[randomIndex];
 
-        // Split the lines into left and right sets based on which side of the splitting line they lie
         Line leftLines[100];
         Line rightLines[100];
         int numLeftLines = 0;
         int numRightLines = 0;
         for (int i = 0; i < numLines; i++) {
             if (i == randomIndex) {
-                continue; // Skip the splitting line
+                continue;
             }
-            int side = getSide(splitLine, lines[i].start);
+            int sideStart = getSide(splitLine, lines[i].start);
+            int sideEnd = getSide(splitLine, lines[i].end);
 
-            if (side == LEFT_SIDE) {
+            if ((sideStart == LEFT_SIDE && sideEnd == LEFT_SIDE) ||
+                (sideStart == LEFT_SIDE && sideEnd == ON_SPLIT_LINE) ||
+                (sideStart == ON_SPLIT_LINE && sideEnd == LEFT_SIDE)) {
                 leftLines[numLeftLines++] = lines[i];
-            } else if (side == RIGHT_SIDE) {
+            } else if ((sideStart == RIGHT_SIDE && sideEnd == RIGHT_SIDE) ||
+                       (sideStart == RIGHT_SIDE && sideEnd == ON_SPLIT_LINE) ||
+                       (sideStart == ON_SPLIT_LINE && sideEnd == RIGHT_SIDE)) {
                 rightLines[numRightLines++] = lines[i];
+            } else if ((sideStart == RIGHT_SIDE && sideEnd == LEFT_SIDE) ||
+                       (sideStart == LEFT_SIDE && sideEnd == RIGHT_SIDE)) {
+                Point intersection;
+                intersection.x = (lines[i].start.x +
+                                  (lines[i].end.x - lines[i].start.x) * (splitLine.start.y - lines[i].start.y) /
+                                  (lines[i].end.y - lines[i].start.y));
+                intersection.y = splitLine.start.y;
+                Line leftPart = {lines[i].start, intersection};
+                Line rightPart = {intersection, lines[i].end};
+                leftPart.color[0] = lines[i].color[0];
+                leftPart.color[1] = lines[i].color[1];
+                leftPart.color[2] = lines[i].color[2];
+                rightPart.color[0] = lines[i].color[0];
+                rightPart.color[1] = lines[i].color[1];
+                rightPart.color[2] = lines[i].color[2];
+                leftLines[numLeftLines++] = leftPart;
+                rightLines[numRightLines++] = rightPart;
             } else {
-                // If the line is coincident with the splitting line, randomly assign it to one side or the other
                 if (rand() % 2 == 0) {
                     leftLines[numLeftLines++] = lines[i];
                 } else {
@@ -91,11 +104,9 @@ Node *buildBSP(Line *lines, int numLines) {
             }
         }
 
-        // Build the left and right subtrees recursively
         Node *leftSubtree = buildBSP(leftLines, numLeftLines);
         Node *rightSubtree = buildBSP(rightLines, numRightLines);
 
-        // Create a new node for the splitting line and return the tree
         Node *newNode = createNode(splitLine);
         newNode->left = leftSubtree;
         newNode->right = rightSubtree;
@@ -103,7 +114,50 @@ Node *buildBSP(Line *lines, int numLines) {
     }
 }
 
-//TODO: move method
+struct Node *readTree(FILE *file) {
+    char marker[4];
+    fread(marker, sizeof(char), 4, file);
+    if (strncmp(marker, "NULL", 4) == 0) {
+        return NULL;
+    } else {
+        fseek(file, -4, SEEK_CUR);
+    }
+
+    Line line;
+    fread(&line.start.x, sizeof(double), 1, file);
+    fread(&line.start.y, sizeof(double), 1, file);
+    fread(&line.end.x, sizeof(double), 1, file);
+    fread(&line.end.y, sizeof(double), 1, file);
+    fread(&line.color[0], sizeof(int), 1, file);
+    fread(&line.color[1], sizeof(int), 1, file);
+    fread(&line.color[2], sizeof(int), 1, file);
+
+    struct Node *newNode = createNode(line);
+
+    newNode->left = readTree(file);
+    newNode->right = readTree(file);
+
+    return newNode;
+}
+
+void storeTree(struct Node *root, FILE *file) {
+    if (root == NULL) {
+        fwrite("NULL", sizeof(char), 4, file);
+        return;
+    }
+
+    fwrite(&(root->line.start.x), sizeof(double), 1, file);
+    fwrite(&(root->line.start.y), sizeof(double), 1, file);
+    fwrite(&(root->line.end.x), sizeof(double), 1, file);
+    fwrite(&(root->line.end.y), sizeof(double), 1, file);
+    fwrite(&(root->line.color[0]), sizeof(int), 1, file);
+    fwrite(&(root->line.color[1]), sizeof(int), 1, file);
+    fwrite(&(root->line.color[2]), sizeof(int), 1, file);
+
+    storeTree(root->left, file);
+    storeTree(root->right, file);
+}
+
 void print_tree(struct Node *node) {
     if (node != NULL) {
         print_tree(node->left);
@@ -159,7 +213,6 @@ void draw_line(vec2 *start, vec2 *end, vec3 *color) {
     float w = 320;
     float h = 240;
 
-    // convert 3d world space position 2d screen space position
     x1 = 2 * x1 / w - 1;
     y1 = 2 * y1 / h - 1;
 
@@ -175,7 +228,6 @@ void draw_line(vec2 *start, vec2 *end, vec3 *color) {
     l->endPoint = end;
     l->lineColor = color;
 
-    // setting vertex data
     l->vertices = (float *) (malloc(sizeof(float) * 6));
     l->vertices[0] = start->x;
     l->vertices[1] = start->y;

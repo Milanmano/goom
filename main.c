@@ -18,10 +18,8 @@
 player g_player;
 key g_pressedKeys;
 Line g_walls[NUM_OF_WALLS];
-int g_window[2];
+int g_window;
 Node *g_tree;
-
-int g_drawbuffer[GLUT_WINDOW_SIZE_WIDTH + 1] = {0};
 
 void drawWall(int x1, int b1, int t1, int x2, int b2, int t2, int color[3]) {
     double dx = x2 - x1;
@@ -44,7 +42,6 @@ void drawWall(int x1, int b1, int t1, int x2, int b2, int t2, int color[3]) {
     }
 
     for (int x = x1; x < x2; x++) {
-        //if (g_drawbuffer[x] == 1) { continue; }
         int bys = (b2 - b1) * (x - xs) / dx + b1;
         int tys = (t2 - t1) * (x - xs) / dx + t1;
 
@@ -62,7 +59,6 @@ void drawWall(int x1, int b1, int t1, int x2, int b2, int t2, int color[3]) {
         }
 
         draw_line(vec2_init(x, bys), vec2_init(x, tys), vec3_init(color[0], color[1], color[2]));
-        g_drawbuffer[x] = 1;
     }
 }
 
@@ -134,85 +130,23 @@ void draw_3D_Wall(double start_x, double start_y, double end_x, double end_y, in
 };
 
 
-void find_player_in_subtree(struct Node *node) {
+void drawTree(struct Node *node) {
     if (node == NULL) { return; }
-    /*
-     * find player in tree
-     * from there
-     * descend until leaf prioritizing the closer child node
-     * draw leaf
-     * draw "other" leaf
-     * ascend and change subtree
-     * repeat until root or screenwidth reached
-     */
     Point p = {g_player.x, g_player.y};
     int side = getSide(node->line, p);
 
-    if (side == RIGHT_SIDE) {
-        find_player_in_subtree(node->left);
+    if (side == LEFT_SIDE) {
+        drawTree(node->right);
         draw_3D_Wall(node->line.start.x, node->line.start.y, node->line.end.x, node->line.end.y, node->line.color);
-        find_player_in_subtree(node->right);
+        drawTree(node->left);
+    } else if (side == RIGHT_SIDE) {
+        drawTree(node->left);
+        draw_3D_Wall(node->line.start.x, node->line.start.y, node->line.end.x, node->line.end.y, node->line.color);
+        drawTree(node->right);
     } else if (node->left == NULL && node->right == NULL) {
         draw_3D_Wall(node->line.start.x, node->line.start.y, node->line.end.x, node->line.end.y, node->line.color);
-    } else if (side == LEFT_SIDE) {
-        find_player_in_subtree(node->right);
-        draw_3D_Wall(node->line.start.x, node->line.start.y, node->line.end.x, node->line.end.y, node->line.color);
-        find_player_in_subtree(node->left);
     }
-}
 
-void draw3D() {
-    for (int wall = 0; wall < sizeof(g_walls) / sizeof(g_walls[0]); wall++) {
-        int color[3] = {g_walls[wall].color[0], g_walls[wall].color[1], g_walls[wall].color[2]};
-        int wx[4], wy[4], wz[4];
-        int x1 = g_walls[wall].start.x - g_player.x;
-        int y1 = g_walls[wall].start.y - g_player.y;
-
-        int x2 = g_walls[wall].end.x - g_player.x;
-        int y2 = g_walls[wall].end.y - g_player.y;
-
-        wx[0] = x1 * cos(DegToRad(g_player.rotation)) - y1 * sin(DegToRad(g_player.rotation));
-        wx[1] = x2 * cos(DegToRad(g_player.rotation)) - y2 * sin(DegToRad(g_player.rotation));
-        wx[2] = wx[0];
-        wx[3] = wx[1];
-
-        wy[0] = y1 * cos(DegToRad(g_player.rotation)) + x1 * sin(DegToRad(g_player.rotation));
-        wy[1] = y2 * cos(DegToRad(g_player.rotation)) + x2 * sin(DegToRad(g_player.rotation));
-        wy[2] = wy[0];
-        wy[3] = wy[1];
-
-        wz[0] = 0 - 20;
-        wz[1] = 0 - 20;
-        wz[2] = 40 - 20;
-        wz[3] = 40 - 20;
-
-
-        if (wy[0] < 1 && wy[1] < 1) { continue; }
-
-        if (wy[0] < 1) {
-            clipBehindPlayer(&wx[0], &wy[0], &wz[0], wx[1], wy[1], wz[1]);
-            clipBehindPlayer(&wx[2], &wy[2], &wz[2], wx[3], wy[3], wz[3]);
-        }
-
-        if (wy[1] < 1) {
-            clipBehindPlayer(&wx[1], &wy[1], &wz[1], wx[0], wy[0], wz[0]);
-            clipBehindPlayer(&wx[3], &wy[3], &wz[3], wx[2], wy[2], wz[2]);
-        }
-
-        wx[0] = wx[0] * 200 / wy[0] + GLUT_WINDOW_SIZE_WIDTH / 2;
-        wy[0] = wz[0] * 200 / wy[0] + GLUT_WINDOW_SIZE_HEIGHT / 2;
-
-        wx[1] = wx[1] * 200 / wy[1] + GLUT_WINDOW_SIZE_WIDTH / 2;
-        wy[1] = wz[1] * 200 / wy[1] + GLUT_WINDOW_SIZE_HEIGHT / 2;
-
-        wx[2] = wx[2] * 200 / wy[2] + GLUT_WINDOW_SIZE_WIDTH / 2;
-        wy[2] = wz[2] * 200 / wy[2] + GLUT_WINDOW_SIZE_HEIGHT / 2;
-
-        wx[3] = wx[3] * 200 / wy[3] + GLUT_WINDOW_SIZE_WIDTH / 2;
-        wy[3] = wz[3] * 200 / wy[3] + GLUT_WINDOW_SIZE_HEIGHT / 2;
-
-        drawWall(wx[0], wy[0], wy[2], wx[1], wy[1], wy[3], color);
-    }
 }
 
 void keyboard(unsigned char key, int x, int y) {
@@ -254,15 +188,35 @@ void keyboardUp(unsigned char key, int x, int y) {
     }
 }
 
+double calcDist(double x1, double y1, double x2, double y2) {
+    return sqrt((x2 - x1) * (x2 - x1) + (y2 - y1) * (y2 - y1));
+}
+
 void move() {
     double dx = sin(DegToRad(g_player.rotation)) * 1;
     double dy = cos(DegToRad(g_player.rotation)) * 1;
 
     if (g_pressedKeys.w == 1) {
+        for (int wall = 0; wall < sizeof(g_walls) / sizeof(g_walls[0]); wall++) {
+            double lineLen = calcDist(g_walls[wall].start.x, g_walls[wall].start.y, g_walls[wall].end.x,
+                                      g_walls[wall].end.y);
+            double playerDist1 = calcDist(g_player.x + dx, g_player.y + dy, g_walls[wall].end.x, g_walls[wall].end.y);
+            double playerDist2 = calcDist(g_walls[wall].start.x, g_walls[wall].start.y, g_player.x + dx,
+                                          g_player.y + dy);
+            if (playerDist1 + playerDist2 >= lineLen - 0.3f && playerDist1 + playerDist2 <= lineLen + 0.3f) { return; }
+        }
         g_player.x += dx;
         g_player.y += dy;
     }
     if (g_pressedKeys.s == 1) {
+        for (int wall = 0; wall < sizeof(g_walls) / sizeof(g_walls[0]); wall++) {
+            double lineLen = calcDist(g_walls[wall].start.x, g_walls[wall].start.y, g_walls[wall].end.x,
+                                      g_walls[wall].end.y);
+            double playerDist1 = calcDist(g_player.x - dx, g_player.y - dy, g_walls[wall].end.x, g_walls[wall].end.y);
+            double playerDist2 = calcDist(g_walls[wall].start.x, g_walls[wall].start.y, g_player.x - dx,
+                                          g_player.y - dy);
+            if (playerDist1 + playerDist2 >= lineLen - 0.3f && playerDist1 + playerDist2 <= lineLen + 0.3f) { return; }
+        }
         g_player.x -= dx;
         g_player.y -= dy;
     }
@@ -281,7 +235,7 @@ void move() {
 }
 
 void timer() {
-    glutSetWindow(g_window[0]);
+    glutSetWindow(g_window);
     glutPostRedisplay();
     glutTimerFunc(1000 / 60, timer, 0);
 }
@@ -292,8 +246,7 @@ void render() {
     glGetError();
 
     move();
-    find_player_in_subtree(g_tree);
-    memset(g_drawbuffer, 0, sizeof(g_drawbuffer));
+    drawTree(g_tree);
 
     printf("pos: (%f, %f) rot: %i\n", g_player.x, g_player.y, g_player.rotation);
 
@@ -312,30 +265,68 @@ void setWallData(char *line, int lineNumber) {
 
 }
 
-void fileRead() {
+void fileRead(const char arg[]) {
     FILE *fp;
     char line[100];
-    size_t len = 0;
     int lineNumber = 0;
 
-    fp = fopen("./map", "r");
-    if (fp == NULL) {
-        exit(EXIT_FAILURE);
+    const char *ext = strrchr(arg, '.');
+    if (!ext) {
+        fp = fopen(arg, "r");
+        if (fp == NULL) {
+            exit(EXIT_FAILURE);
+        }
+
+        while (fgets(line, sizeof(line), fp)) {
+            setWallData(line, lineNumber);
+            lineNumber++;
+        }
+        g_tree = buildBSP(g_walls, 8);
+        fclose(fp);
+        fp = fopen("map.bin", "wb");
+        if (fp == NULL) {
+            exit(EXIT_FAILURE);
+        }
+        int number_of_walls = sizeof(g_walls) / sizeof(g_walls[0]);
+        fwrite(&number_of_walls, sizeof(int), 1, fp);
+        for (int wall = 0; wall < number_of_walls; wall++) {
+            fwrite(&(g_walls[wall].start.x), sizeof(double), 1, fp);
+            fwrite(&(g_walls[wall].start.y), sizeof(double), 1, fp);
+            fwrite(&(g_walls[wall].end.x), sizeof(double), 1, fp);
+            fwrite(&(g_walls[wall].end.y), sizeof(double), 1, fp);
+            fwrite(&(g_walls[wall].color[0]), sizeof(int), 1, fp);
+            fwrite(&(g_walls[wall].color[1]), sizeof(int), 1, fp);
+            fwrite(&(g_walls[wall].color[2]), sizeof(int), 1, fp);
+        }
+        storeTree(g_tree, fp);
+        fclose(fp);
+    } else if (strcmp(ext + 1, "bin") == 0) {
+        fp = fopen(arg, "rb");
+        if (fp == NULL) {
+            exit(EXIT_FAILURE);
+        }
+        int number_of_walls;
+        fread(&number_of_walls, sizeof(int), 1, fp);
+        for (int wall = 0; wall < number_of_walls; wall++) {
+            fread(&(g_walls[wall].start.x), sizeof(double), 1, fp);
+            fread(&(g_walls[wall].start.y), sizeof(double), 1, fp);
+            fread(&(g_walls[wall].end.x), sizeof(double), 1, fp);
+            fread(&(g_walls[wall].end.y), sizeof(double), 1, fp);
+            fread(&(g_walls[wall].color[0]), sizeof(int), 1, fp);
+            fread(&(g_walls[wall].color[1]), sizeof(int), 1, fp);
+            fread(&(g_walls[wall].color[2]), sizeof(int), 1, fp);
+        }
+        g_tree = readTree(fp);
+        fclose(fp);
     }
 
-    while (fgets(line, sizeof(line), fp)) {
-        setWallData(line, lineNumber);
-        lineNumber++;
-    }
-
-    g_tree = buildBSP(g_walls, 8);
     print_tree(g_tree);
-    fclose(fp);
+
 }
 
-void initialization() {
+void initialization(char arg[]) {
     timer();
-    fileRead();
+    fileRead(arg);
 
     g_player.x = 80;
     g_player.y = 10;
@@ -389,6 +380,12 @@ GLuint generateShaderProgram() {
 }
 
 int main(int argc, char *argv[]) {
+
+    if (argc != 2) {
+        printf("One argument expected.");
+        exit(EXIT_FAILURE);
+    }
+
     glutInit(&argc, argv);
     glutInitContextVersion(4, 6);
     glutInitContextProfile(GLUT_CORE_PROFILE);
@@ -396,10 +393,10 @@ int main(int argc, char *argv[]) {
     glutInitWindowSize(GLUT_WINDOW_SIZE_WIDTH, GLUT_WINDOW_SIZE_HEIGHT);
     glutInitDisplayMode(GLUT_RGB | GLUT_DOUBLE);
 
-    g_window[0] = glutCreateWindow("Goom");
+    g_window = glutCreateWindow("Goom");
     glPointSize(1);
 
-    initialization();
+    initialization(argv[1]);
 
     glutDisplayFunc(render);
     glutKeyboardFunc(keyboard);
@@ -414,6 +411,6 @@ int main(int argc, char *argv[]) {
     glViewport(0, 0, GLUT_WINDOW_SIZE_WIDTH, GLUT_WINDOW_SIZE_HEIGHT);
     generateShaderProgram();
     glutMainLoop();
-    return 0;
+    exit(EXIT_SUCCESS);
 }
 

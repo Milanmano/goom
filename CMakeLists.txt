@@ -12,3 +12,9 @@ add_custom_command(
         COMMAND ${CMAKE_COMMAND} -E copy
         ${CMAKE_CURRENT_SOURCE_DIR}/examples/map
         ${CMAKE_CURRENT_BINARY_DIR}/map)
+
+add_custom_command(
+        TARGET ${PROJECT_NAME} POST_BUILD
+        COMMAND ${CMAKE_COMMAND} -E copy
+        ${CMAKE_CURRENT_SOURCE_DIR}/examples/map.bin
+        ${CMAKE_CURRENT_BINARY_DIR}/map.bin)
