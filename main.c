@@ -13,26 +13,13 @@
 #define GLUT_WINDOW_SIZE_WIDTH 320
 #define GLUT_WINDOW_SIZE_HEIGHT 240
 
-#define NUM_OF_WALLS 8
+#define NUM_OF_WALLS 100
 
 player g_player;
 key g_pressedKeys;
 Line g_walls[NUM_OF_WALLS];
 int g_window;
 Node *g_tree;
-
-int getSide(Line splitLine, Point point) {
-    double det = (splitLine.end.x - splitLine.start.x) * (point.y - splitLine.start.y) -
-                 (point.x - splitLine.start.x) * (splitLine.end.y - splitLine.start.y);
-
-    if (det < 0) {
-        return LEFT_SIDE;
-    } else if (det > 0) {
-        return RIGHT_SIDE;
-    } else {
-        return ON_SPLIT_LINE;
-    }
-}
 
 Point calculateIntersection(Point start1, Point end1, Point start2, Point end2) {
     Point intersection;
@@ -60,9 +47,6 @@ Point calculateIntersection(Point start1, Point end1, Point start2, Point end2) 
         if (t1 >= 0 && t1 <= 1 && t2 >= 0 && t2 <= 1) {
             intersection.x = x1 + t1 * (x2 - x1);
             intersection.y = y1 + t1 * (y2 - y1);
-        } else if (t1 >= 0 && t1 <= 1) {
-            intersection.x = x1 + t1 * (x2 - x1);
-            intersection.y = y1 + t1 * (y2 - y1);
         } else {
             intersection.x = -1;
             intersection.y = -1;
@@ -70,6 +54,19 @@ Point calculateIntersection(Point start1, Point end1, Point start2, Point end2) 
     }
 
     return intersection;
+}
+
+int getSide(Line splitLine, Point point) {
+    double det = (splitLine.end.x - splitLine.start.x) * (point.y - splitLine.start.y) -
+                 (point.x - splitLine.start.x) * (splitLine.end.y - splitLine.start.y);
+
+    if (det < 0) {
+        return LEFT_SIDE;
+    } else if (det > 0) {
+        return RIGHT_SIDE;
+    } else {
+        return ON_SPLIT_LINE;
+    }
 }
 
 Node *buildBSP(Line *lines, int numLines) {
@@ -150,15 +147,6 @@ void storeTree(struct Node *root, FILE *file) {
     storeTree(root->right, file);
 }
 
-void printTree(struct Node *node) {
-    if (node != NULL) {
-        printTree(node->left);
-        printf("(%.0f,%.0f) -> (%.0f,%.0f)\n", node->line.start.x, node->line.start.y, node->line.end.x,
-               node->line.end.y);
-        printTree(node->right);
-    }
-}
-
 void drawLine(vec2 *start, vec2 *end, vec3 *color) {
 
     line *l = (line *) malloc(sizeof(line));
@@ -215,7 +203,7 @@ void drawLine(vec2 *start, vec2 *end, vec3 *color) {
 }
 
 void drawWall(int x1, int b1, int t1, int x2, int b2, int t2, int color[3]) {
-    double dx = x2 - x1;
+    int dx = x2 - x1;
     if (dx == 0) {
         dx = 1;
     }
@@ -320,7 +308,7 @@ void draw3DWall(double start_x, double start_y, double end_x, double end_y, int 
     wy[3] = wz[3] * 200 / wy[3] + GLUT_WINDOW_SIZE_HEIGHT / 2;
 
     drawWall(wx[0], wy[0], wy[2], wx[1], wy[1], wy[3], color);
-};
+}
 
 void drawTree(struct Node *node) {
     if (node == NULL) { return; }
@@ -339,45 +327,6 @@ void drawTree(struct Node *node) {
         draw3DWall(node->line.start.x, node->line.start.y, node->line.end.x, node->line.end.y, node->line.color);
     }
 
-}
-
-void keyboard(unsigned char key, int x, int y) {
-    switch (key) {
-        case 'w':
-            g_pressedKeys.w = 1;
-            break;
-        case 's':
-            g_pressedKeys.s = 1;
-            break;
-        case 'a':
-            g_pressedKeys.a = 1;
-            break;
-        case 'd':
-            g_pressedKeys.d = 1;
-            break;
-        default:
-            printf("not mapped key\n");
-            break;
-    }
-}
-
-void keyboardUp(unsigned char key, int x, int y) {
-    switch (key) {
-        case 'w':
-            g_pressedKeys.w = 0;
-            break;
-        case 's':
-            g_pressedKeys.s = 0;
-            break;
-        case 'a':
-            g_pressedKeys.a = 0;
-            break;
-        case 'd':
-            g_pressedKeys.d = 0;
-            break;
-        default:
-            break;
-    }
 }
 
 double calcDist(double x1, double y1, double x2, double y2) {
@@ -424,25 +373,6 @@ void move() {
             g_player.rotation = 0;
         }
     }
-}
-
-void timer() {
-    glutSetWindow(g_window);
-    glutPostRedisplay();
-    glutTimerFunc(1000 / 60, timer, 0);
-}
-
-void render() {
-    glClearColor(0, 0.2f, 0.5f, 0);
-    glClear(GL_COLOR_BUFFER_BIT);
-    glGetError();
-
-    move();
-    drawTree(g_tree);
-
-    printf("pos: (%f, %f) rot: %i\n", g_player.x, g_player.y, g_player.rotation);
-
-    glutSwapBuffers();
 }
 
 void setWallData(char *line, int lineNumber) {
@@ -511,9 +441,12 @@ void fileRead(const char arg[]) {
         g_tree = readTree(fp);
         fclose(fp);
     }
+}
 
-    printTree(g_tree);
-
+void timer() {
+    glutSetWindow(g_window);
+    glutPostRedisplay();
+    glutTimerFunc(1000 / 60, timer, 0);
 }
 
 void initialization(char arg[]) {
@@ -528,6 +461,58 @@ void initialization(char arg[]) {
     g_pressedKeys.s = 0;
     g_pressedKeys.a = 0;
     g_pressedKeys.d = 0;
+}
+
+void render() {
+    glClearColor(0, 0.2f, 0.5f, 0);
+    glClear(GL_COLOR_BUFFER_BIT);
+    glGetError();
+
+    move();
+    drawTree(g_tree);
+
+    printf("pos: (%f, %f) rot: %i\n", g_player.x, g_player.y, g_player.rotation);
+
+    glutSwapBuffers();
+}
+
+void keyboard(unsigned char key, int x, int y) {
+    switch (key) {
+        case 'w':
+            g_pressedKeys.w = 1;
+            break;
+        case 's':
+            g_pressedKeys.s = 1;
+            break;
+        case 'a':
+            g_pressedKeys.a = 1;
+            break;
+        case 'd':
+            g_pressedKeys.d = 1;
+            break;
+        default:
+            printf("not mapped key\n");
+            break;
+    }
+}
+
+void keyboardUp(unsigned char key, int x, int y) {
+    switch (key) {
+        case 'w':
+            g_pressedKeys.w = 0;
+            break;
+        case 's':
+            g_pressedKeys.s = 0;
+            break;
+        case 'a':
+            g_pressedKeys.a = 0;
+            break;
+        case 'd':
+            g_pressedKeys.d = 0;
+            break;
+        default:
+            break;
+    }
 }
 
 GLuint generateShaderProgram() {
